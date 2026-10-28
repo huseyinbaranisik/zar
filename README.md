@@ -12,7 +12,7 @@ Neo Brutalism tasarımlı, telefonda ve bilgisayarda çalışan basit bir zar at
 ## Özellikler
 
 - Sade arayüz: sağ üstte minik zar ikonları, ortada sadece zar — zara dokun, at
-- d6 için gerçek 3D CSS küpü; diğer zarlar kendi silüetinde döner, zıplar ve sonuca oturur
+- Her zar kendi silüetinde (d4 üçgen, d6 kare, d8 eşkenar dörtgen, d10 uçurtma, d12 beşgen, d20 altıgen) döner, zıplar ve sonuca oturur
 - Boşluk / Enter ile ya da telefonu sallayarak da atılabilir (iOS'ta izin zara ilk dokunuşta istenir)
 - Kritik sonuçlar: en yüksek değerde konfeti + yeşil gölge, 1 gelince sarsılma + kırmızı gölge
 - `crypto.getRandomValues` ile sapmasız rastgelelik

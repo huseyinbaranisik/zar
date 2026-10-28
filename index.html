@@ -181,62 +181,14 @@
     100% { transform: scale(1); }
   }
 
-  /* d6: gerçek 3D küp */
-  .scene { --s: 140px; width: var(--s); height: var(--s); perspective: 800px; }
-  .tilt { width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(-14deg) rotateY(18deg); }
-  .hop { width: 100%; height: 100%; transform-style: preserve-3d; }
-  .rolling .hop { animation: hop .8s cubic-bezier(.3,.6,.4,1) both; }
-  .landed .hop { animation: tak .16s ease-out; }
-  @keyframes hop {
-    0% { transform: translateY(0); }
-    40% { transform: translateY(-64px); }
-    72% { transform: translateY(0); }
-    84% { transform: translateY(-12px); }
-    100% { transform: translateY(0); }
-  }
-  .cube {
-    position: relative;
-    width: 100%; height: 100%;
-    transform-style: preserve-3d;
-    transition: transform .8s cubic-bezier(.25,.75,.3,1);
-  }
-  .face {
-    position: absolute; inset: 0;
-    background: var(--yellow);
-    border: 3px solid var(--ink);
-    border-radius: 16px;
-    display: grid;
-    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-    padding: 16px;
-    backface-visibility: hidden;
-  }
-  .face i {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: var(--ink);
-    place-self: center;
-  }
-  .face.f1 i { width: 36px; height: 36px; background: var(--red); border: 3px solid var(--ink); }
-  .f1 { transform: translateZ(calc(var(--s) / 2)); }
-  .f6 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
-  .f3 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
-  .f4 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
-  .f5 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
-  .f2 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
-
   .shadow-blob {
     position: absolute; left: 50%; bottom: 4%;
     width: 140px; height: 14px; margin-left: -70px;
     background: var(--line); opacity: .18; border-radius: 50%;
     transition: background .2s ease, opacity .2s ease;
   }
-  [data-type="d6"].crit-max .shadow-blob { background: var(--green); opacity: .9; }
-  [data-type="d6"].crit-min .shadow-blob { background: var(--red); opacity: .9; }
   .rolling .shadow-blob { animation: blob .8s ease both; }
   @keyframes blob { 40% { transform: scale(.55); opacity: .08; } 100% { transform: scale(1); } }
-
-  [data-type="d6"] .big-svg { display: none; }
-  .die-btn:not([data-type="d6"]) .scene { display: none; }
 
   .hint { margin: 0; font-size: .85rem; color: var(--muted); min-height: 1.2em; transition: opacity .3s ease; }
   .hint.gone { opacity: 0; }
@@ -281,9 +233,6 @@
         <g id="bigShape"></g>
         <text class="num" id="bigNum" x="50" y="50" font-size="30">?</text>
       </svg>
-      <div class="scene" aria-hidden="true">
-        <div class="tilt"><div class="hop"><div class="cube" id="cube"></div></div></div>
-      </div>
     </button>
     <p class="hint" id="hint">Atmak için zara dokun</p>
     <span id="live" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>
@@ -329,7 +278,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var picker = $('picker'), dieBtn = $('dieBtn'), bigShape = $('bigShape'), bigNum = $('bigNum');
-  var cube = $('cube'), hint = $('hint'), live = $('live');
+  var hint = $('hint'), live = $('live');
   var soundBtn = $('soundBtn'), themeBtn = $('themeBtn');
 
   // ---------- Rastgelelik (crypto, sapmasız) ----------
@@ -407,37 +356,6 @@
     bigNum.textContent = '?';
   }
 
-  // ---------- 3D küp ----------
-  var PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
-  for (var v = 1; v <= 6; v++) {
-    var f = document.createElement('div');
-    f.className = 'face f' + v;
-    f.innerHTML = PIPS[v].map(function (p) {
-      return '<i style="grid-area:' + (Math.ceil(p / 3)) + '/' + (((p - 1) % 3) + 1) + '"></i>';
-    }).join('');
-    cube.appendChild(f);
-  }
-  // Her yüzü öne getiren küp dönüşü = o yüzün dönüşünün tersi
-  var FACE_ROT = { 1: [0, 0], 2: [90, 0], 3: [0, -90], 4: [0, 90], 5: [-90, 0], 6: [0, 180] };
-  var rx = 0, ry = 0;
-  function nextAngle(cur, base, minTurns) {
-    return base + 360 * Math.ceil((cur + 360 * minTurns - base) / 360);
-  }
-  function showCube(value, animate) {
-    var t = FACE_ROT[value];
-    if (animate) {
-      rx = nextAngle(rx, t[0], 2);
-      ry = nextAngle(ry, t[1], 1);
-      cube.style.transition = '';
-    } else {
-      rx = t[0]; ry = t[1];
-      cube.style.transition = 'none';
-    }
-    cube.style.transform = 'rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
-    cube.dataset.value = value;
-  }
-  showCube(1, false);
-
   // ---------- Atış ----------
   function roll() {
     if (rolling) return;
@@ -450,17 +368,16 @@
     dieBtn.classList.remove('crit-max', 'crit-min', 'shake', 'landed', 'rolling');
     void dieBtn.offsetWidth; // animasyonu yeniden başlat
 
-    if (key === 'd6') showCube(value, !reduced);
     var cycle = null;
     if (!reduced) {
       dieBtn.classList.add('rolling');
-      if (key !== 'd6') cycle = setInterval(function () { bigNum.textContent = randInt(d.sides); }, 55);
+      cycle = setInterval(function () { bigNum.textContent = randInt(d.sides); }, 55);
       tick(900, 0.08);
     }
 
     setTimeout(function () {
       if (cycle) clearInterval(cycle);
-      if (key !== 'd6') bigNum.textContent = value;
+      bigNum.textContent = value;
       dieBtn.classList.remove('rolling');
       if (!reduced) dieBtn.classList.add('landed');
       land(key, value, d.sides, reduced);
