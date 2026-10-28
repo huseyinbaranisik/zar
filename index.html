@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zar At</title>
+<meta name="description" content="Neo Brutalism tasarımlı, telefonda sallayarak da atılabilen zar sitesi (d4–d20)">
+<meta name="theme-color" content="#fbf1e8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='6' y='6' width='88' height='88' rx='18' fill='%23f2605d' stroke='%231c1b1f' stroke-width='8'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%231c1b1f'/%3E%3Ccircle cx='68' cy='32' r='8' fill='%231c1b1f'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%231c1b1f'/%3E%3Ccircle cx='32' cy='68' r='8' fill='%231c1b1f'/%3E%3Ccircle cx='68' cy='68' r='8' fill='%231c1b1f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  // Tema, ilk boyamadan önce uygulansın (yanıp sönme olmasın)
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('zar.theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') {
+      t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #fbf1e8;
+    --card: #fffdf9;
+    --text: #1c1b1f;
+    --line: #1c1b1f;
+    --muted: #6e6861;
+    --ink: #1c1b1f;
+    --red: #f2605d;
+    --purple: #9d80ef;
+    --teal: #3fc5b4;
+    --yellow: #ffe066;
+    --orange: #f5a066;
+    --pink: #ffcbc2;
+    --green: #5fd17f;
+    --sh: 4px;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #26232d;
+    --card: #33303b;
+    --text: #f6efe6;
+    --line: #060508;
+    --muted: #b5ada4;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 3px dashed var(--purple); outline-offset: 3px; }
+
+  .app {
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .btn {
+    background: var(--card);
+    border: 3px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--sh) var(--sh) 0 var(--line);
+    transition: transform .08s ease, box-shadow .08s ease;
+    touch-action: manipulation;
+  }
+  .btn:active {
+    transform: translate(var(--sh), var(--sh));
+    box-shadow: 0 0 0 var(--line);
+  }
+
+  /* Üst bar: solda başlık, sağ üstte minik zarlar */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+  .brand-icon {
+    display: grid; place-items: center;
+    width: 34px; height: 34px;
+    background: var(--red);
+    color: var(--ink);
+    border: 3px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 3px 3px 0 var(--line);
+    font-size: 1.4rem; line-height: 1;
+  }
+  @media (max-width: 359px) { .brand-text { display: none; } }
+
+  .picker { display: flex; gap: 4px; }
+  .pick {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    width: 32px;
+    background: none; border: 0; padding: 2px 0;
+    touch-action: manipulation;
+  }
+  .pick svg {
+    width: 26px; height: 26px;
+    overflow: visible;
+    filter: drop-shadow(2px 2px 0 var(--line));
+    transition: transform .08s ease, filter .08s ease;
+  }
+  .pick .lbl {
+    font-size: .6rem; font-weight: 700; line-height: 1.2;
+    padding: 0 4px;
+    border-radius: 4px;
+    color: var(--muted);
+  }
+  .pick[aria-checked="true"] svg, .pick:active svg { filter: none; transform: translate(2px, 2px); }
+  .pick[aria-checked="true"] .lbl { background: var(--text); color: var(--bg); }
+
+  /* Ortada sadece zar */
+  main {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+    padding: 24px 0;
+    position: relative;
+  }
+  .die-btn {
+    position: relative;
+    width: 280px; max-width: 100%;
+    aspect-ratio: 1;
+    background: none; border: 0; padding: 0;
+    display: grid; place-items: center;
+    touch-action: manipulation;
+    --dshadow: var(--line);
+  }
+  .die-btn:focus-visible { outline-offset: -4px; border-radius: 20px; }
+  .die-btn.crit-max { --dshadow: var(--green); }
+  .die-btn.crit-min { --dshadow: var(--red); }
+  .die-btn.shake { animation: shake .45s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-9px) rotate(-2deg); }
+    30% { transform: translateX(8px) rotate(2deg); }
+    45% { transform: translateX(-6px); }
+    60% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+  }
+
+  .big-svg { width: 82%; height: 82%; overflow: visible; }
+  .big-svg .sh { fill: var(--dshadow); transition: fill .2s ease; }
+  .big-svg .num {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    fill: var(--ink);
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .rolling .big-svg { animation: spin-hop .8s cubic-bezier(.3,.6,.4,1) both; }
+  .landed .big-svg { animation: tak .16s ease-out; }
+  @keyframes spin-hop {
+    0%   { transform: translateY(0) rotate(0deg) scale(1); }
+    40%  { transform: translateY(-64px) rotate(300deg) scale(1.06); }
+    70%  { transform: translateY(0) rotate(640deg) scale(1, .92); }
+    82%  { transform: translateY(-14px) rotate(700deg) scale(1); }
+    92%  { transform: translateY(0) rotate(720deg) scale(1.08, .9); }
+    100% { transform: translateY(0) rotate(720deg) scale(1); }
+  }
+  @keyframes tak {
+    0% { transform: scale(1.1, .88); }
+    60% { transform: scale(.97, 1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* d6: gerçek 3D küp */
+  .scene { --s: 140px; width: var(--s); height: var(--s); perspective: 800px; }
+  .tilt { width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(-14deg) rotateY(18deg); }
+  .hop { width: 100%; height: 100%; transform-style: preserve-3d; }
+  .rolling .hop { animation: hop .8s cubic-bezier(.3,.6,.4,1) both; }
+  .landed .hop { animation: tak .16s ease-out; }
+  @keyframes hop {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-64px); }
+    72% { transform: translateY(0); }
+    84% { transform: translateY(-12px); }
+    100% { transform: translateY(0); }
+  }
+  .cube {
+    position: relative;
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform .8s cubic-bezier(.25,.75,.3,1);
+  }
+  .face {
+    position: absolute; inset: 0;
+    background: var(--yellow);
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    padding: 16px;
+    backface-visibility: hidden;
+  }
+  .face i {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--ink);
+    place-self: center;
+  }
+  .face.f1 i { width: 36px; height: 36px; background: var(--red); border: 3px solid var(--ink); }
+  .f1 { transform: translateZ(calc(var(--s) / 2)); }
+  .f6 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+  .f3 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+  .f4 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+  .f5 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+  .f2 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+
+  .shadow-blob {
+    position: absolute; left: 50%; bottom: 4%;
+    width: 140px; height: 14px; margin-left: -70px;
+    background: var(--line); opacity: .18; border-radius: 50%;
+    transition: background .2s ease, opacity .2s ease;
+  }
+  [data-type="d6"].crit-max .shadow-blob { background: var(--green); opacity: .9; }
+  [data-type="d6"].crit-min .shadow-blob { background: var(--red); opacity: .9; }
+  .rolling .shadow-blob { animation: blob .8s ease both; }
+  @keyframes blob { 40% { transform: scale(.55); opacity: .08; } 100% { transform: scale(1); } }
+
+  [data-type="d6"] .big-svg { display: none; }
+  .die-btn:not([data-type="d6"]) .scene { display: none; }
+
+  .hint { margin: 0; font-size: .85rem; color: var(--muted); min-height: 1.2em; transition: opacity .3s ease; }
+  .hint.gone { opacity: 0; }
+
+  /* Konfeti */
+  .confetti {
+    position: absolute; left: 50%; top: 45%;
+    width: 10px; height: 14px;
+    border: 2px solid var(--line);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Altta minik ses / tema */
+  footer { display: flex; justify-content: center; gap: 12px; }
+  .mini { --sh: 3px; width: 38px; height: 38px; display: grid; place-items: center; padding: 0; }
+  .mini svg { width: 18px; height: 18px; }
+  #soundBtn .off { display: none; }
+  #soundBtn[aria-pressed="false"] .on { display: none; }
+  #soundBtn[aria-pressed="false"] .off { display: block; }
+  #themeBtn .moon { display: none; }
+  :root[data-theme="dark"] #themeBtn .moon { display: block; }
+  :root[data-theme="dark"] #themeBtn .sun { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 class="brand"><span class="brand-icon" aria-hidden="true">⚄</span><span class="brand-text">Zar At</span></h1>
+    <nav class="picker" role="radiogroup" aria-label="Zar tipi" id="picker"></nav>
+  </header>
+
+  <main>
+    <button class="die-btn" id="dieBtn" aria-label="Zarı at" data-type="d20">
+      <span class="shadow-blob" aria-hidden="true"></span>
+      <svg class="big-svg" id="bigSvg" viewBox="0 0 100 100" aria-hidden="true">
+        <g id="bigShape"></g>
+        <text class="num" id="bigNum" x="50" y="50" font-size="30">?</text>
+      </svg>
+      <div class="scene" aria-hidden="true">
+        <div class="tilt"><div class="hop"><div class="cube" id="cube"></div></div></div>
+      </div>
+    </button>
+    <p class="hint" id="hint">Atmak için zara dokun</p>
+    <span id="live" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></span>
+  </main>
+
+  <footer>
+    <button id="soundBtn" class="btn mini" aria-pressed="true" aria-label="Sesi kapat" title="Ses">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+    <button id="themeBtn" class="btn mini" aria-label="Temayı değiştir" title="Tema">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
+    </button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Zar tanımları ----------
+  var DICE = {
+    d4:  { sides: 4,  color: '#f2605d', shape: '<polygon points="50,8 94,88 6,88"/>', ty: 62, fs: 30 },
+    d6:  { sides: 6,  color: '#ffe066', shape: '<rect x="10" y="10" width="80" height="80" rx="12"/>', ty: 50, fs: 34 },
+    d8:  { sides: 8,  color: '#3fc5b4', shape: '<polygon points="50,4 94,50 50,96 6,50"/>', ty: 50, fs: 30 },
+    d10: { sides: 10, color: '#9d80ef', shape: '<polygon points="50,4 92,42 50,96 8,42"/>', ty: 46, fs: 28 },
+    d12: { sides: 12, color: '#f5a066', shape: '<polygon points="50,6 93.7,37.8 77,89.2 23,89.2 6.3,37.8"/>', ty: 54, fs: 30 },
+    d20: { sides: 20, color: '#ffcbc2', shape: '<polygon points="50,4 89.8,27 89.8,73 50,96 10.2,73 10.2,27"/>', ty: 50, fs: 30 }
+  };
+  var ORDER = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
+  var SHAPE_ATTRS = 'stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"';
+
+  // ---------- Kayıtlı tercihler ----------
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var root = document.documentElement;
+  var reduceMQ = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var type = DICE[load('zar.type')] ? load('zar.type') : 'd20';
+  var soundOn = load('zar.sound') !== 'off';
+  var rolling = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var picker = $('picker'), dieBtn = $('dieBtn'), bigShape = $('bigShape'), bigNum = $('bigNum');
+  var cube = $('cube'), hint = $('hint'), live = $('live');
+  var soundBtn = $('soundBtn'), themeBtn = $('themeBtn');
+
+  // ---------- Rastgelelik (crypto, sapmasız) ----------
+  function randInt(n) {
+    var buf = new Uint32Array(1);
+    var limit = Math.floor(4294967296 / n) * n;
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    return (buf[0] % n) + 1;
+  }
+
+  // ---------- Ses (Web Audio ile "tık") ----------
+  var actx = null;
+  function audio() {
+    if (!actx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tick(freq, vol) {
+    if (!soundOn) return;
+    var c = audio();
+    if (!c) return;
+    var t = c.currentTime;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(freq || 1400, t);
+    o.frequency.exponentialRampToValueAtTime(220, t + 0.045);
+    g.gain.setValueAtTime(vol || 0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + 0.07);
+  }
+
+  // ---------- Minik zar seçici ----------
+  ORDER.forEach(function (key) {
+    var d = DICE[key];
+    var b = document.createElement('button');
+    b.className = 'pick';
+    b.setAttribute('role', 'radio');
+    b.dataset.type = key;
+    b.setAttribute('aria-label', key);
+    b.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="' + d.color + '" ' + SHAPE_ATTRS + ' stroke-width="8">' + d.shape + '</g></svg><span class="lbl">' + key + '</span>';
+    b.addEventListener('click', function () { if (!rolling) setType(key); });
+    picker.appendChild(b);
+  });
+  picker.addEventListener('keydown', function (e) {
+    var i = ORDER.indexOf(type);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') i = (i + 1) % ORDER.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') i = (i + ORDER.length - 1) % ORDER.length;
+    else return;
+    e.preventDefault();
+    if (rolling) return;
+    setType(ORDER[i]);
+    picker.querySelector('[data-type="' + ORDER[i] + '"]').focus();
+  });
+
+  function setType(key) {
+    type = key;
+    save('zar.type', key);
+    var d = DICE[key];
+    picker.querySelectorAll('.pick').forEach(function (p) {
+      var on = p.dataset.type === key;
+      p.setAttribute('aria-checked', on);
+      p.tabIndex = on ? 0 : -1;
+    });
+    dieBtn.dataset.type = key;
+    dieBtn.setAttribute('aria-label', key + ' zarını at');
+    dieBtn.classList.remove('crit-max', 'crit-min');
+    bigShape.innerHTML = '<g class="sh" transform="translate(4 4)">' + d.shape + '</g><g fill="' + d.color + '" ' + SHAPE_ATTRS + '>' + d.shape + '</g>';
+    bigNum.setAttribute('y', d.ty);
+    bigNum.setAttribute('font-size', d.fs);
+    bigNum.textContent = '?';
+  }
+
+  // ---------- 3D küp ----------
+  var PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
+  for (var v = 1; v <= 6; v++) {
+    var f = document.createElement('div');
+    f.className = 'face f' + v;
+    f.innerHTML = PIPS[v].map(function (p) {
+      return '<i style="grid-area:' + (Math.ceil(p / 3)) + '/' + (((p - 1) % 3) + 1) + '"></i>';
+    }).join('');
+    cube.appendChild(f);
+  }
+  // Her yüzü öne getiren küp dönüşü = o yüzün dönüşünün tersi
+  var FACE_ROT = { 1: [0, 0], 2: [90, 0], 3: [0, -90], 4: [0, 90], 5: [-90, 0], 6: [0, 180] };
+  var rx = 0, ry = 0;
+  function nextAngle(cur, base, minTurns) {
+    return base + 360 * Math.ceil((cur + 360 * minTurns - base) / 360);
+  }
+  function showCube(value, animate) {
+    var t = FACE_ROT[value];
+    if (animate) {
+      rx = nextAngle(rx, t[0], 2);
+      ry = nextAngle(ry, t[1], 1);
+      cube.style.transition = '';
+    } else {
+      rx = t[0]; ry = t[1];
+      cube.style.transition = 'none';
+    }
+    cube.style.transform = 'rotateX(' + rx + 'deg) rotateY(' + ry + 'deg)';
+    cube.dataset.value = value;
+  }
+  showCube(1, false);
+
+  // ---------- Atış ----------
+  function roll() {
+    if (rolling) return;
+    rolling = true;
+    hint.classList.add('gone');
+    var d = DICE[type], key = type;
+    var value = randInt(d.sides);
+    var reduced = reduceMQ.matches;
+
+    dieBtn.classList.remove('crit-max', 'crit-min', 'shake', 'landed', 'rolling');
+    void dieBtn.offsetWidth; // animasyonu yeniden başlat
+
+    if (key === 'd6') showCube(value, !reduced);
+    var cycle = null;
+    if (!reduced) {
+      dieBtn.classList.add('rolling');
+      if (key !== 'd6') cycle = setInterval(function () { bigNum.textContent = randInt(d.sides); }, 55);
+      tick(900, 0.08);
+    }
+
+    setTimeout(function () {
+      if (cycle) clearInterval(cycle);
+      if (key !== 'd6') bigNum.textContent = value;
+      dieBtn.classList.remove('rolling');
+      if (!reduced) dieBtn.classList.add('landed');
+      land(key, value, d.sides, reduced);
+      rolling = false;
+    }, reduced ? 0 : 800);
+  }
+
+  function land(key, value, sides, reduced) {
+    var isMax = value === sides, isMin = value === 1;
+    tick(isMax ? 1900 : 1400, 0.2);
+    live.textContent = key + ': ' + value;
+    if (isMax) {
+      dieBtn.classList.add('crit-max');
+      if (!reduced) { confetti(); setTimeout(function () { tick(2600, 0.12); }, 90); }
+    } else if (isMin) {
+      dieBtn.classList.add('crit-min');
+      if (!reduced) { dieBtn.classList.remove('landed'); dieBtn.classList.add('shake'); }
+    }
+  }
+
+  function confetti() {
+    var colors = ['#f2605d', '#9d80ef', '#3fc5b4', '#ffe066', '#f5a066', '#ffcbc2', '#5fd17f'];
+    var host = dieBtn.parentNode;
+    for (var i = 0; i < 26; i++) {
+      var c = document.createElement('span');
+      c.className = 'confetti';
+      c.style.background = colors[i % colors.length];
+      host.appendChild(c);
+      var ang = (randInt(360) / 180) * Math.PI;
+      var dist = 80 + randInt(110);
+      var dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist - 40;
+      var anim = c.animate([
+        { transform: 'translate(-50%,-50%) rotate(0deg) scale(1)', opacity: 1 },
+        { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) rotate(' + (randInt(540) - 270) + 'deg) scale(1)', opacity: 1, offset: 0.7 },
+        { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + (dy + 40) + 'px)) rotate(' + (randInt(720) - 360) + 'deg) scale(.6)', opacity: 0 }
+      ], { duration: 900 + randInt(300), easing: 'cubic-bezier(.2,.7,.3,1)' });
+      anim.onfinish = (function (el) { return function () { el.remove(); }; })(c);
+    }
+  }
+
+  // ---------- Atış yolları: zara dokunma, boşluk/Enter, sallama ----------
+  dieBtn.addEventListener('click', function () {
+    askMotion();
+    roll();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (e.target.closest && e.target.closest('button, input, textarea, select, a')) return;
+    if (e.repeat) return;
+    e.preventDefault();
+    roll();
+  });
+
+  var lastShake = 0, motionOn = false, motionAsked = false;
+  function onMotion(e) {
+    var a = e.acceleration, g = e.accelerationIncludingGravity, m;
+    if (a && a.x != null) m = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    else if (g && g.x != null) m = Math.abs(Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) - 9.81);
+    else return;
+    var now = Date.now();
+    if (m > 15 && now - lastShake > 1200 && !rolling) {
+      lastShake = now;
+      roll();
+    }
+  }
+  function enableMotion() {
+    if (motionOn) return;
+    motionOn = true;
+    window.addEventListener('devicemotion', onMotion);
+  }
+  var isTouch = (navigator.maxTouchPoints || 0) > 0 && window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  var needsPermission = window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function';
+  if (window.DeviceMotionEvent && isTouch) {
+    hint.textContent = 'Atmak için zara dokun ya da telefonu salla';
+    if (!needsPermission) enableMotion();
+  }
+  // iOS: sallama izni, zara ilk dokunuşta (kullanıcı hareketiyle) istenir
+  function askMotion() {
+    if (!isTouch || !needsPermission || motionAsked) return;
+    motionAsked = true;
+    DeviceMotionEvent.requestPermission().then(function (s) {
+      if (s === 'granted') enableMotion();
+    }).catch(function () {});
+  }
+
+  // ---------- Ses & tema ----------
+  function applySound() {
+    soundBtn.setAttribute('aria-pressed', soundOn);
+    soundBtn.setAttribute('aria-label', soundOn ? 'Sesi kapat' : 'Sesi aç');
+  }
+  soundBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    save('zar.sound', soundOn ? 'on' : 'off');
+    applySound();
+    tick(1400, 0.15);
+  });
+
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    themeBtn.setAttribute('aria-label', t === 'dark' ? 'Açık temaya geç' : 'Karanlık temaya geç');
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#26232d' : '#fbf1e8');
+  }
+  themeBtn.addEventListener('click', function () {
+    var t = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    save('zar.theme', t);
+    applyTheme(t);
+  });
+  if (window.matchMedia) {
+    var darkMQ = matchMedia('(prefers-color-scheme: dark)');
+    var follow = function (e) { var s = load('zar.theme'); if (s !== 'light' && s !== 'dark') applyTheme(e.matches ? 'dark' : 'light'); };
+    if (darkMQ.addEventListener) darkMQ.addEventListener('change', follow);
+  }
+
+  // ---------- Başlat ----------
+  applyTheme(root.getAttribute('data-theme') || 'light');
+  applySound();
+  setType(type);
+})();
+</script>
+</body>
+</html>
