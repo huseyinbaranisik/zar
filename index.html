@@ -289,31 +289,116 @@
     return (buf[0] % n) + 1;
   }
 
-  // ---------- Ses (Web Audio ile "tık") ----------
-  var actx = null;
+  // ---------- Ses efektleri (hepsi Web Audio ile kodda üretilir) ----------
+  var actx = null, master = null, noiseBuf = null;
   function audio() {
+    if (!soundOn) return null;
     if (!actx) {
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       actx = new AC();
+      master = actx.createGain();
+      master.gain.value = 0.8;
+      master.connect(actx.destination);
+      noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.5, actx.sampleRate);
+      var data = noiseBuf.getChannelData(0);
+      for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     }
     if (actx.state === 'suspended') actx.resume();
     return actx;
   }
-  function tick(freq, vol) {
-    if (!soundOn) return;
-    var c = audio();
-    if (!c) return;
-    var t = c.currentTime;
+  // Tek bir nota: dalga tipi, frekans (bitişe kayabilir), başlangıç, süre, ses seviyesi
+  function tone(c, type, f1, f2, at, dur, vol) {
     var o = c.createOscillator(), g = c.createGain();
-    o.type = 'square';
-    o.frequency.setValueAtTime(freq || 1400, t);
-    o.frequency.exponentialRampToValueAtTime(220, t + 0.045);
-    g.gain.setValueAtTime(vol || 0.18, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-    o.connect(g); g.connect(c.destination);
-    o.start(t); o.stop(t + 0.07);
+    o.type = type;
+    o.frequency.setValueAtTime(f1, at);
+    if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(f2, at + dur);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(vol, at + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(master);
+    o.start(at); o.stop(at + dur + 0.02);
+    return o;
   }
+  // Kısa, filtrelenmiş gürültü patlaması (zarın masaya çarpması gibi)
+  function knock(c, at, freq, dur, vol) {
+    var s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = noiseBuf;
+    s.playbackRate.value = 0.8 + Math.random() * 0.4;
+    bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 3;
+    g.gain.setValueAtTime(vol, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    s.connect(bp); bp.connect(g); g.connect(master);
+    s.start(at, Math.random() * 0.3); s.stop(at + dur + 0.01);
+  }
+  var sfx = {
+    // Butonlar için yumuşak "klik"
+    click: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime;
+      tone(c, 'square', 2200, 900, t, 0.035, 0.08);
+      knock(c, t, 3500, 0.025, 0.25);
+    },
+    // Zar atma: elde sallanma + masada yuvarlanma takırtısı
+    roll: function (dur) {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime;
+      var n = Math.max(3, Math.round(dur / 0.06));
+      for (var i = 0; i < n; i++) {
+        var p = i / n;
+        var at = t + p * dur + Math.random() * 0.025;
+        knock(c, at, 1800 + Math.random() * 2200, 0.03 + Math.random() * 0.02, 0.35 * (1 - p * 0.6));
+        if (i % 3 === 0) tone(c, 'triangle', 700 + Math.random() * 500, 400, at, 0.03, 0.05);
+      }
+    },
+    // Zarın "tak" diye oturması
+    land: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime;
+      tone(c, 'sine', 190, 55, t, 0.14, 0.5);
+      knock(c, t, 1200, 0.05, 0.6);
+      knock(c, t + 0.07, 2000, 0.03, 0.18);
+    },
+    // En yüksek sayı: neşeli arpej + parıltı
+    win: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.08;
+      [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+        tone(c, 'square', f, f, t + i * 0.085, 0.14, 0.07);
+        tone(c, 'triangle', f, f, t + i * 0.085, 0.18, 0.12);
+      });
+      var end = t + 0.34;
+      [1046.5, 1318.5, 1568].forEach(function (f) { tone(c, 'triangle', f, f, end, 0.5, 0.09); });
+      for (var k = 0; k < 6; k++) tone(c, 'sine', 2400 + Math.random() * 2000, 3000, end + 0.05 + k * 0.06, 0.08, 0.04);
+    },
+    // En düşük sayı: inen "vık vık vıııık" başarısızlık sesi
+    fail: function () {
+      var c = audio(); if (!c) return;
+      var t = c.currentTime + 0.08;
+      var lp = c.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1100;
+      lp.connect(master);
+      [[392, 370, 0.2], [370, 349, 0.2], [349, 220, 0.62]].forEach(function (n, i) {
+        var at = t + i * 0.24;
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(n[0], at);
+        o.frequency.exponentialRampToValueAtTime(n[1], at + n[2]);
+        if (i === 2) { // son notada titreme
+          var lfo = c.createOscillator(), lg = c.createGain();
+          lfo.frequency.value = 7; lg.gain.value = 9;
+          lfo.connect(lg); lg.connect(o.frequency);
+          lfo.start(at); lfo.stop(at + n[2]);
+        }
+        g.gain.setValueAtTime(0.0001, at);
+        g.gain.exponentialRampToValueAtTime(0.14, at + 0.02);
+        g.gain.setValueAtTime(0.14, at + n[2] * 0.6);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + n[2]);
+        o.connect(g); g.connect(lp);
+        o.start(at); o.stop(at + n[2] + 0.02);
+      });
+    }
+  };
 
   // ---------- Minik zar seçici ----------
   ORDER.forEach(function (key) {
@@ -324,7 +409,7 @@
     b.dataset.type = key;
     b.setAttribute('aria-label', key);
     b.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="' + d.color + '" ' + SHAPE_ATTRS + ' stroke-width="8">' + d.shape + '</g></svg><span class="lbl">' + key + '</span>';
-    b.addEventListener('click', function () { if (!rolling) setType(key); });
+    b.addEventListener('click', function () { if (!rolling && key !== type) { sfx.click(); setType(key); } });
     picker.appendChild(b);
   });
   picker.addEventListener('keydown', function (e) {
@@ -372,8 +457,8 @@
     if (!reduced) {
       dieBtn.classList.add('rolling');
       cycle = setInterval(function () { bigNum.textContent = randInt(d.sides); }, 55);
-      tick(900, 0.08);
     }
+    sfx.roll(reduced ? 0.12 : 0.74);
 
     setTimeout(function () {
       if (cycle) clearInterval(cycle);
@@ -387,11 +472,13 @@
 
   function land(key, value, sides, reduced) {
     var isMax = value === sides, isMin = value === 1;
-    tick(isMax ? 1900 : 1400, 0.2);
+    sfx.land();
+    if (isMax) sfx.win();
+    else if (isMin) sfx.fail();
     live.textContent = key + ': ' + value;
     if (isMax) {
       dieBtn.classList.add('crit-max');
-      if (!reduced) { confetti(); setTimeout(function () { tick(2600, 0.12); }, 90); }
+      if (!reduced) confetti();
     } else if (isMin) {
       dieBtn.classList.add('crit-min');
       if (!reduced) { dieBtn.classList.remove('landed'); dieBtn.classList.add('shake'); }
@@ -472,7 +559,7 @@
     soundOn = !soundOn;
     save('zar.sound', soundOn ? 'on' : 'off');
     applySound();
-    tick(1400, 0.15);
+    sfx.click();
   });
 
   function applyTheme(t) {
@@ -485,6 +572,7 @@
     var t = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     save('zar.theme', t);
     applyTheme(t);
+    sfx.click();
   });
   if (window.matchMedia) {
     var darkMQ = matchMedia('(prefers-color-scheme: dark)');

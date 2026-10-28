@@ -16,7 +16,7 @@ Neo Brutalism tasarımlı, telefonda ve bilgisayarda çalışan basit bir zar at
 - Boşluk / Enter ile ya da telefonu sallayarak da atılabilir (iOS'ta izin zara ilk dokunuşta istenir)
 - Kritik sonuçlar: en yüksek değerde konfeti + yeşil gölge, 1 gelince sarsılma + kırmızı gölge
 - `crypto.getRandomValues` ile sapmasız rastgelelik
-- Web Audio ile üretilen "tık" sesi (ses dosyası yok), açılıp kapatılabilir
+- Web Audio ile kodda üretilen ses efektleri (ses dosyası yok): zar takırtısı, buton klik sesi, en yüksek sayıda kutlama, 1 gelince başarısızlık sesi; açılıp kapatılabilir
 - Açık / karanlık tema (ilk açılışta sistem temasına uyar)
 - `prefers-reduced-motion` desteği; zar tipi, tema ve ses tercihi hatırlanır
 
